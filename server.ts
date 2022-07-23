@@ -7,12 +7,6 @@ const app = express()
 app.use(cors())
 const port = 5000
 
-app.get('/', (req, res) => {
-  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-  //res.json({"green":1,"red":0,"pump1":0,"pump2":0});
-  res.json(config);
-})
-
 app.use(express.static('public'));
 app.get('/home', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
@@ -21,9 +15,13 @@ app.get('/home', (req, res) => {
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
+app.get('/config', (req, res) => {
+  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+  res.json(config);
+})
+
 app.post('/config', (req, res) => {
   let config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-  console.log(req.body);
   config = {...config, ...req.body};
   fs.writeFileSync('./config.json', JSON.stringify(config));
   res.json(config);
@@ -35,32 +33,29 @@ app.get('/sensors', async (req, res) => {
 })
 
 app.post('/sensors', (req, res) => {
-  if (!req.body.key) {
+  if (!req.body.values) {
     res.json({
       success: false,
-      reason: 'No key provided',
-    });
-    return;
-  }
-  if (!req.body.value) {
-    res.json({
-      success: false,
-      reason: 'No value provided',
+      reason: 'No values provided',
     });
     return;
   }
   let sensors = JSON.parse(fs.readFileSync('./sensorData.json', 'utf8'));
 
-  let sensor = sensors[req.body.key];
+  for (let key in req.body.values) {
+    let value = req.body.values[key];
 
-  if (!sensor || !sensor.length) {
-    sensor = [req.body.value];
-  } else if (sensor.length < 20) {
-    sensor = [...sensor, req.body.value];
-  } else if (sensor.length >= 20) {
-    sensor = [...sensor.slice(1), req.body.value];
+    let sensor = sensors[key];
+    if (!sensor || !sensor.length) {
+      sensor = [value];
+    } else if (sensor.length < 20) {
+      sensor = [...sensor, value];
+    } else if (sensor.length >= 20) {
+      sensor = [...sensor.slice(1), value];
+    }
+    sensors[key] = sensor;
   }
-  sensors[req.body.key] = sensor;
+
   fs.writeFileSync('./sensorData.json', JSON.stringify(sensors));
   res.json(sensors);
 })
