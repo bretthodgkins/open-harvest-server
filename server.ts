@@ -27,6 +27,27 @@ app.post('/config', (req, res) => {
   res.json(config);
 })
 
+app.get('/pumps', async (req, res) => {
+  let data = JSON.parse(fs.readFileSync('./pumps.json', 'utf8'));
+  res.json(data);
+})
+
+app.put('/pumps/:pumpId', (req, res) => {
+  if (!req.query.state) {
+    res.json({
+      success: false,
+      reason: 'No state provided',
+    });
+    return;
+  }
+  let pumps = JSON.parse(fs.readFileSync('./pumps.json', 'utf8'));
+
+  pumps[`pump${req.params.pumpId}`] = req.query.state === 'true';
+
+  fs.writeFileSync('./pumps.json', JSON.stringify(pumps));
+  res.json(pumps);
+})
+
 app.get('/sensors', async (req, res) => {
   let sensorData = JSON.parse(fs.readFileSync('./sensorData.json', 'utf8'));
   res.json(sensorData);
